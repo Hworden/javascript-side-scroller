@@ -25,6 +25,24 @@ class KeysPressedHandler {
     }
 }
 
+class SpriteMap {
+    constructor(image, frameWidth, frameHeight, totalFrames) {
+        this.totalFrames = totalFrames;
+        this.frameWidth = frameWidth;
+        this.frameHeight = frameHeight;
+        this.image = image;
+    }
+    draw(ctx, x, y) {
+        const framesPerRow = Math.floor(this.image.width / this.frameWidth);
+        const row = Math.floor(this.frameNumber/framesPerRow);
+        const col = this.frameNumber % framesPerRow;
+        ctx.drawImage(this.image, col*this.frameWidth, row*this.frameHeight, this.frameWidth, this.frameHeight, x, y, this.frameWidth, this.frameHeight);
+    }
+    setFrame(frameNumber) {
+        this.frameNumber = frameNumber;
+    }
+}
+
 class Player {
     constructor(image) {
         this.width = 200;
@@ -32,14 +50,16 @@ class Player {
         this.x = 0;
         this.y = 0;
         this.vx = 0;
-        this.image = image;
+        this.sprite = new SpriteMap(image, this.width, this.height, 9);
+        this.animationFrame = 0;
     }
     draw(renderer) {
         renderer.drawPlayer(this);
     }
     step() {
-        this.x += this.vx;
-        this.vx += 1;
+        this.x += 1;
+        this.animationFrame = (this.animationFrame + 1) % 9;
+        this.sprite.setFrame(this.animationFrame)
     }
 }
 
@@ -102,8 +122,8 @@ class CanvasGameRenderer {
     }
 
     drawPlayer(player) {
-        this.ctx.fillStyle = 'white';
-        this.ctx.drawImage(player.image, player.x, this.orientY(player.y) - player.height, player.width, player.height);
+        player.sprite.draw(this.ctx, player.x, this.orientY(player.y) - player.height);
+        // this.ctx.drawImage(player.image, player.x, this.orientY(player.y) - player.height, player.width, player.height);
     }
 }
 
