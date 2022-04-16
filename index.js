@@ -17,9 +17,7 @@ class KeysPressedHandler {
     }
 
     getKeysPressed() {
-        const keysPressed = this.keysPressed;
-        this.keysPressed = new Set();
-        return keysPressed;
+        return new Set(this.keysPressed);
     }
 }
 
@@ -47,23 +45,88 @@ class Sprite {
     }
 }
 
-class Player {
-    constructor(sprite) {
-        this.x = 0;
-        this.y = 0;
-        this.vx = 0;
+class Character {
+    constructor(sprite, game) {
+        this.xPos = 0;
+        this.yPos = 0;
+        this.velocityX = 0;
+        this.velocityY = 0;
         this.sprite = sprite;
         this.animationFrame = 0;
+        this.game = game;
     }
     draw(renderer) {
         renderer.drawSprite(this.sprite, this.x, this.y);
     }
     step() {
-        this.x += 1;
+        this.xPos += this.vx;
+        this.yPos += this.vy;
+        this.vy -= this.game.gravity;
         this.animationFrame += 0.15;
         this.sprite.setFrame(Math.floor(this.animationFrame));
+        
+        if (this.vy < 0 && this.game.onGround(this)) {
+            this.vy = 0;
+            this.yPos = 0;
+        }
+    }
+
+    get vx() {
+        return this.velocityX;
+    }
+     
+    get vy() {
+        return this.velocityY;
+    }
+
+    set vx(vx) {
+        this.velocityX = vx;
+    }
+    set vy(vy) {
+        this.velocityY = vy;
+    }
+
+    get x() {
+        return this.xPos;
+    }
+    get y() {
+        return this.yPos;
     }
 }
+
+class Player {
+    constructor(keysPressedHandler, character) {
+        this.character = character;
+        this.keysPressedHandler = keysPressedHandler;
+    }
+    draw(renderer) {
+        this.character.draw(renderer);
+    }
+    step() {
+        const keys = this.keysPressedHandler.getKeysPressed();
+        if (keys.has('a')) {
+            this.character.vx = -5;
+        }
+        if (keys.has('d')) {
+            this.character.vx = 5;
+        }
+        if (keys.size == 0) {
+            this.character.vx = 0;
+        }
+        if (keys.has('w')) {
+            this.character.vy = 5;
+        }
+
+        this.character.step();
+    }
+    get x() {
+        return this.character.x;
+    }
+    get y() {
+        return this.character.y;
+    }
+}
+
 
 class Enemy {
 
@@ -94,6 +157,14 @@ class Game {
 
     removeEntity(entity) {
         this.entities.delete(entity);
+    }
+
+    onGround(entity) {
+        return entity.y <= 0;
+    }
+
+    get gravity() {
+        return 0.3;
     }
 }
 
@@ -129,14 +200,14 @@ class CanvasGameRenderer {
 }
 
 function main() {
+    const keyboard = new KeysPressedHandler(['a','s','d','w']);
+
     const game = new Game();
     const playerWidth = playerHeight = 200;
     const playerSprite = new Sprite(document.getElementById('player'), playerWidth, playerHeight, 9, 0)
-    const player = new Player(playerSprite);
+    const player = new Player(keyboard, new Character(playerSprite, game));
     game.addEntity(player);
 
-    const keyboard = new KeysPressedHandler(['k']);
-    
     const fps = 60;
     const renderer = new CanvasGameRenderer(document.getElementById("gameView"));
     renderer.setHeight(500);
