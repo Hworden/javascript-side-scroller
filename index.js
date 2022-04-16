@@ -5,14 +5,12 @@ class KeysPressedHandler {
         window.addEventListener('keydown', (function(e) {
             if (this.keysToListenFor.has(e.key)) {
                 this.keysPressed.add(e.key);
-                console.log(this.keysPressed);
             }
         }).bind(this));
         window.addEventListener('keyup', (function(e) {
             if (this.keysToListenFor.has(e.key)) {
                 if (this.keysPressed.has(e.key)) {
                     this.keysPressed.delete(e.key);
-                    console.log(this.keysPressed);
                 }
             }
         }).bind(this));
@@ -25,41 +23,45 @@ class KeysPressedHandler {
     }
 }
 
-class SpriteMap {
-    constructor(image, frameWidth, frameHeight, totalFrames) {
-        this.totalFrames = totalFrames;
+class Sprite {
+    constructor(image, frameWidth, frameHeight, numImagesOnRow, row = 0) {
         this.frameWidth = frameWidth;
         this.frameHeight = frameHeight;
         this.image = image;
+        this.row = row;
+        this.numImagesOnRow = numImagesOnRow;
+        this.frameNumber = 0;
     }
     draw(ctx, x, y) {
-        const framesPerRow = Math.floor(this.image.width / this.frameWidth);
-        const row = Math.floor(this.frameNumber/framesPerRow);
-        const col = this.frameNumber % framesPerRow;
-        ctx.drawImage(this.image, col*this.frameWidth, row*this.frameHeight, this.frameWidth, this.frameHeight, x, y, this.frameWidth, this.frameHeight);
+        const col = this.frameNumber % this.numImagesOnRow;
+        ctx.drawImage(this.image, col*this.frameWidth, this.row*this.frameHeight, this.frameWidth, this.frameHeight, x, y, this.frameWidth, this.frameHeight);
     }
     setFrame(frameNumber) {
-        this.frameNumber = frameNumber;
+        this.frameNumber = frameNumber % this.numImagesOnRow;
+    }
+    get width() {
+        return this.frameWidth;
+    }
+    get height() {
+        return this.frameHeight;
     }
 }
 
 class Player {
-    constructor(image) {
-        this.width = 200;
-        this.height = 200;
+    constructor(sprite) {
         this.x = 0;
         this.y = 0;
         this.vx = 0;
-        this.sprite = new SpriteMap(image, this.width, this.height, 9);
+        this.sprite = sprite;
         this.animationFrame = 0;
     }
     draw(renderer) {
-        renderer.drawPlayer(this);
+        renderer.drawSprite(this.sprite, this.x, this.y);
     }
     step() {
         this.x += 1;
-        this.animationFrame = (this.animationFrame + 1) % 9;
-        this.sprite.setFrame(this.animationFrame)
+        this.animationFrame += 0.15;
+        this.sprite.setFrame(Math.floor(this.animationFrame));
     }
 }
 
@@ -117,20 +119,20 @@ class CanvasGameRenderer {
         });
     }
 
-    orientY(y) {
+    flipY(y) {
         return this.canvas.height - y;
     }
 
-    drawPlayer(player) {
-        player.sprite.draw(this.ctx, player.x, this.orientY(player.y) - player.height);
-        // this.ctx.drawImage(player.image, player.x, this.orientY(player.y) - player.height, player.width, player.height);
+    drawSprite(sprite, x, y) {
+        sprite.draw(this.ctx, x, this.flipY(y) - sprite.height);
     }
 }
 
 function main() {
     const game = new Game();
-    const player = new Player(document.getElementById('player'));
-    player.y = 20;
+    const playerWidth = playerHeight = 200;
+    const playerSprite = new Sprite(document.getElementById('player'), playerWidth, playerHeight, 9, 0)
+    const player = new Player(playerSprite);
     game.addEntity(player);
 
     const keyboard = new KeysPressedHandler(['k']);
