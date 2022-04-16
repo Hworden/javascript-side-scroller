@@ -54,6 +54,7 @@ class Character {
         this.sprite = sprite;
         this.animationFrame = 0;
         this.game = game;
+        this.isJumping = false;
     }
     draw(renderer) {
         renderer.drawSprite(this.sprite, this.x, this.y);
@@ -64,10 +65,11 @@ class Character {
         this.vy -= this.game.gravity;
         this.animationFrame += 0.15;
         this.sprite.setFrame(Math.floor(this.animationFrame));
-        
+
         if (this.vy < 0 && this.game.onGround(this)) {
             this.vy = 0;
             this.yPos = 0;
+            this.isJumping = false;
         }
     }
 
@@ -92,6 +94,13 @@ class Character {
     get y() {
         return this.yPos;
     }
+
+    jump() {
+        if (!this.isJumping) {
+            this.vy = 20;
+            this.isJumping = true;
+        }
+    }
 }
 
 class Player {
@@ -114,7 +123,7 @@ class Player {
             this.character.vx = 0;
         }
         if (keys.has('w')) {
-            this.character.vy = 5;
+            this.character.jump();
         }
 
         this.character.step();
@@ -164,7 +173,7 @@ class Game {
     }
 
     get gravity() {
-        return 0.3;
+        return 1.5;
     }
 }
 
