@@ -31,7 +31,7 @@ class Sprite {
         this.frameNumber = 0;
     }
     draw(ctx, x, y) {
-        const col = this.frameNumber % this.numImagesOnRow;
+        const col = this.frameNumber;
         ctx.drawImage(this.image, col*this.frameWidth, this.row*this.frameHeight, this.frameWidth, this.frameHeight, x, y, this.frameWidth, this.frameHeight);
     }
     setFrame(frameNumber) {
@@ -46,25 +46,44 @@ class Sprite {
 }
 
 class Character {
-    constructor(sprite, game) {
+    constructor(walkingSprite, jumpingSprite, game) {
         this.xPos = 0;
         this.yPos = 0;
         this.velocityX = 0;
         this.velocityY = 0;
-        this.sprite = sprite;
+        this.walkingSprite = walkingSprite;
+        this.jumpingSprite = jumpingSprite;
+
+        this.jumpingAnimationFrame = 0;
+
         this.animationFrame = 0;
         this.game = game;
         this.isJumping = false;
     }
     draw(renderer) {
-        renderer.drawSprite(this.sprite, this.x, this.y);
+        let sprite;
+        if(this.isJumping) {
+            sprite = this.jumpingSprite;
+        }
+        else {
+            sprite = this.walkingSprite;
+        }
+        renderer.drawSprite(sprite, this.x, this.y);
     }
     step() {
         this.xPos += this.vx;
         this.yPos += this.vy;
         this.vy -= this.game.gravity;
-        this.animationFrame += 0.15;
-        this.sprite.setFrame(Math.floor(this.animationFrame));
+        if (this.isJumping) {
+            this.jumpingAnimationFrame += 0.3;
+            this.jumpingSprite.setFrame(Math.floor(this.jumpingAnimationFrame));
+            console.log(this.jumpingAnimationFrame);
+        }
+        if (!this.isJumping) {
+            this.animationFrame += 0.3;
+            this.walkingSprite.setFrame(Math.floor(this.animationFrame));
+        }
+
 
         if (this.vy < 0 && this.game.onGround(this)) {
             this.vy = 0;
@@ -99,6 +118,7 @@ class Character {
         if (!this.isJumping) {
             this.vy = 20;
             this.isJumping = true;
+            this.jumpingAnimationFrame = 0;
         }
     }
 }
@@ -213,10 +233,14 @@ function main() {
 
     const game = new Game();
     const playerWidth = playerHeight = 200;
-    const playerSprite = new Sprite(document.getElementById('player'), playerWidth, playerHeight, 9, 0)
-    const player = new Player(keyboard, new Character(playerSprite, game));
-    game.addEntity(player);
 
+    const playerWalkingSprite = new Sprite(document.getElementById('player'), playerWidth, playerHeight, 9, 0);
+    const playerJumpingSprite = new Sprite(document.getElementById('player'), playerWidth, playerHeight, 7, 1);
+
+    const player = new Player(keyboard,
+         new Character(playerWalkingSprite, playerJumpingSprite, game));
+    
+    game.addEntity(player);
     const fps = 60;
     const renderer = new CanvasGameRenderer(document.getElementById("gameView"));
     renderer.setHeight(500);
