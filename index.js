@@ -32,7 +32,9 @@ class Sprite {
     }
     draw(ctx, x, y) {
         const col = this.frameNumber;
-        ctx.drawImage(this.image, col*this.frameWidth, this.row*this.frameHeight, this.frameWidth, this.frameHeight, x, y, this.frameWidth, this.frameHeight);
+        ctx.drawImage(this.image, col*this.frameWidth, 
+            this.row*this.frameHeight, this.frameWidth,
+             this.frameHeight, x, y, this.frameWidth, this.frameHeight);
     }
     setFrame(frameNumber) {
         this.frameNumber = frameNumber % this.numImagesOnRow;
@@ -77,14 +79,11 @@ class Character {
         if (this.isJumping) {
             this.jumpingAnimationFrame += 0.3;
             this.jumpingSprite.setFrame(Math.floor(this.jumpingAnimationFrame));
-            console.log(this.jumpingAnimationFrame);
         }
         if (!this.isJumping) {
             this.animationFrame += 0.3;
             this.walkingSprite.setFrame(Math.floor(this.animationFrame));
         }
-
-
         if (this.vy < 0 && this.game.onGround(this)) {
             this.vy = 0;
             this.yPos = 0;
@@ -162,15 +161,40 @@ class Enemy {
 }
 
 class Background {
-    
+    constructor(image, width, height) {
+        this.image = image;
+        this.xPos = 0;
+        this.yPos = 0;
+        this.width = width;
+        this.height = height;
+    }
+    step() {
+        this.xPos += 12;
+        if (this.xPos >= this.image.width ) {
+            this.xPos = 0;
+        }
+    }
+    draw(renderer) {
+        renderer.drawImage(this.image, this.xPos, this.yPos, this.width, this.height);
+        if (this.xPos + this.width >= this.image.width) {
+            const remainder = this.xPos + this.width - this.image.width;
+            const remMultiplier = remainder / this.width
+            const canvasRemainder = renderer.width * remMultiplier;
+            renderer.ctx.drawImage(this.image, 0 , this.yPos, remainder, this.height, Math.round(renderer.width - canvasRemainder), 0, canvasRemainder, renderer.height);
+        }
+    }
 }
 
 class Game {
     constructor() {
         this.entities = new Set();
+        this.backgrounds = new Set();
     }
 
     step() {
+        this.backgrounds.forEach(b => {
+            b.step();
+        });
         this.entities.forEach(e => {
             e.step();
         })
@@ -178,6 +202,14 @@ class Game {
 
     getEntities() {
         return new Set(this.entities);
+    }
+
+    getBackgrounds() {
+        return new Set(this.backgrounds);
+    }
+
+    addBackground(background) {
+        this.backgrounds.add(background);
     }
 
     addEntity(entity) {
@@ -214,6 +246,9 @@ class CanvasGameRenderer {
 
     render(game) {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        game.getBackgrounds().forEach(background => {
+            background.draw(this);
+        });
         game.getEntities().forEach(entity => {
             entity.draw(this);
         });
@@ -226,9 +261,22 @@ class CanvasGameRenderer {
     drawSprite(sprite, x, y) {
         sprite.draw(this.ctx, x, this.flipY(y) - sprite.height);
     }
+
+    drawImage(image, x, y, width, height, dx = 0, dy = 0) {
+        this.ctx.drawImage(image, x, y, width, height, dx, dy, this.canvas.width, this.canvas.height);
+    }
+
+    get width() {
+        return this.canvas.width;
+    }
+
+    get height() {
+        return this.canvas.height;
+    }
 }
 
 function main() {
+
     const keyboard = new KeysPressedHandler(['a','s','d','w']);
 
     const game = new Game();
@@ -241,10 +289,15 @@ function main() {
          new Character(playerWalkingSprite, playerJumpingSprite, game));
     
     game.addEntity(player);
+
+    const background = new Background(document.getElementById('background'), 1152, 720);
+
+    game.addBackground(background);
+
     const fps = 60;
     const renderer = new CanvasGameRenderer(document.getElementById("gameView"));
-    renderer.setHeight(500);
     renderer.setWidth(800);
+    renderer.setHeight(500);
 
     function animate() {
         renderer.render(game);
